@@ -1,0 +1,15 @@
+<launch>
+	<node name="rcll_refbox_peer" pkg="rcll_refbox_peer" type="rcll_refbox_peer" output="screen">
+		<param name="team_name" type="string" value="Carologistics" />
+		<param name="team_color" type="string" value="CYAN" />
+		<param name="crypto_key" type="string" value="randomkey" />
+		<param name="crypto_cipher" type="string" value="aes-128-cbc" />
+		<param name="peer_address" type="string" value="127.0.0.1" />
+		<param name="peer_public_recv_port" type="int" value="4444" />
+		<param name="peer_public_send_port" type="int" value="4445" />
+		<param name="peer_cyan_recv_port" type="int" value="4441" />
+		<param name="peer_cyan_send_port" type="int" value="4446" />
+		<param name="peer_magenta_recv_port" type="int" value="4442" />
+		<param name="peer_magenta_send_port" type="int" value="4447" />
+	</node>
+</launch>
