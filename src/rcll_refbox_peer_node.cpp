@@ -62,8 +62,7 @@ using namespace llsf_msgs;
 std::string  cfg_team_name_;
 std::string  cfg_robot_name_;
 int          cfg_robot_number_;
-std::string  cfg_team_color_;
-int          cfg_team_color_num_;
+int          cfg_team_color_;
 std::string  cfg_crypto_key_;
 std::string  cfg_crypto_cipher_;
 std::string  cfg_peer_address_;
@@ -71,10 +70,14 @@ bool         cfg_peer_public_local_;
 int          cfg_peer_public_port_;
 int          cfg_peer_public_send_port_;
 int          cfg_peer_public_recv_port_;
-bool         cfg_peer_private_local_;
-int          cfg_peer_private_port_;
-int          cfg_peer_private_send_port_;
-int          cfg_peer_private_recv_port_;
+bool         cfg_peer_cyan_local_;
+int          cfg_peer_cyan_port_;
+int          cfg_peer_cyan_send_port_;
+int          cfg_peer_cyan_recv_port_;
+bool         cfg_peer_magenta_local_;
+int          cfg_peer_magenta_port_;
+int          cfg_peer_magenta_send_port_;
+int          cfg_peer_magenta_recv_port_;
 
 ros::Publisher pub_beacon_;
 ros::Publisher pub_game_state_;
@@ -89,6 +92,9 @@ ros::ServiceServer srv_send_machine_report_;
 
 ProtobufBroadcastPeer *peer_public_ = NULL;
 ProtobufBroadcastPeer *peer_private_ = NULL;
+
+
+void setup_private_peer(llsf_msgs::Team team_color);
 
 void
 handle_recv_error(boost::asio::ip::udp::endpoint &endpoint, std::string msg)
@@ -176,9 +182,23 @@ handle_message(boost::asio::ip::udp::endpoint &sender,
 			rgs.state = (int)gs->state();
 			rgs.phase = (int)gs->phase();
 			if (gs->has_points_cyan()) rgs.points_cyan = gs->points_cyan();
-			if (gs->has_team_cyan()) rgs.team_cyan = gs->team_cyan();
 			if (gs->has_points_magenta()) rgs.points_magenta = gs->points_magenta();
-			if (gs->has_team_magenta()) rgs.team_magenta = gs->team_magenta();
+
+			if (gs->has_team_cyan()) {
+				if (gs->team_cyan() == cfg_team_name_ && cfg_team_color_ != (int)rcll_ros_msgs::Team::CYAN) {
+					setup_private_peer(llsf_msgs::CYAN);
+					cfg_team_color_ = (int)rcll_ros_msgs::Team::CYAN;
+				}
+				rgs.team_cyan = gs->team_cyan();
+			}
+			if (gs->has_team_magenta()) {
+				if (gs->team_magenta() == cfg_team_name_ && cfg_team_color_ != (int)rcll_ros_msgs::Team::MAGENTA) {
+					setup_private_peer(llsf_msgs::MAGENTA);
+					cfg_team_color_ = (int)rcll_ros_msgs::Team::MAGENTA;
+				}
+				rgs.team_magenta = gs->team_magenta();
+			}
+
 			pub_game_state_.publish(rgs);
 		}
 	}
@@ -289,10 +309,58 @@ handle_message(boost::asio::ip::udp::endpoint &sender,
 }
 
 
+void
+setup_private_peer(llsf_msgs::Team team_color)
+{
+	delete peer_private_;
+	peer_private_ = NULL;
+	
+	if (team_color == llsf_msgs::CYAN) {
+		ROS_INFO("Creating private peer for CYAN");
+		
+		if (cfg_peer_cyan_local_) {
+			peer_private_ = new ProtobufBroadcastPeer(cfg_peer_address_,
+			                                          cfg_peer_cyan_send_port_,
+			                                          cfg_peer_cyan_recv_port_,
+			                                          &peer_public_->message_register(),
+			                                          cfg_crypto_key_, cfg_crypto_cipher_);
+		} else {
+			peer_private_ = new ProtobufBroadcastPeer(cfg_peer_address_, cfg_peer_cyan_port_,
+			                                          &peer_public_->message_register(),
+			                                          cfg_crypto_key_, cfg_crypto_cipher_);
+		}
+		
+	} else {
+		ROS_INFO("Creating private peer for MAGENTA");
+		
+		if (cfg_peer_magenta_local_) {
+			peer_private_ = new ProtobufBroadcastPeer(cfg_peer_address_,
+			                                          cfg_peer_magenta_send_port_,
+			                                          cfg_peer_magenta_recv_port_,
+			                                          &peer_public_->message_register(),
+			                                          cfg_crypto_key_, cfg_crypto_cipher_);
+		} else {
+			peer_private_ = new ProtobufBroadcastPeer(cfg_peer_address_, cfg_peer_magenta_port_,
+			                                          &peer_public_->message_register(),
+			                                          cfg_crypto_key_, cfg_crypto_cipher_);
+		}
+	}
+
+	peer_private_->signal_received().connect(handle_message);
+	peer_private_->signal_recv_error().connect(handle_recv_error);
+	peer_private_->signal_send_error().connect(handle_send_error);
+}
+
 bool
 srv_cb_send_beacon(rcll_ros_msgs::SendBeaconSignal::Request  &req,
                    rcll_ros_msgs::SendBeaconSignal::Response &res)
 {
+	if (! peer_private_) {
+		res.ok = false;
+		res.error_msg = "Cannot send beacon signal: private peer not setup, team not set in refbox?";
+		return true;
+	}
+
 	llsf_msgs::BeaconSignal b;
 	b.mutable_time()->set_sec(req.header.stamp.sec);
 	b.mutable_time()->set_nsec(req.header.stamp.nsec);
@@ -300,7 +368,7 @@ srv_cb_send_beacon(rcll_ros_msgs::SendBeaconSignal::Request  &req,
 	b.set_number(cfg_robot_number_);
 	b.set_team_name(cfg_team_name_);
 	b.set_peer_name(cfg_robot_name_);
-	b.set_team_color(ros_to_pb_team_color(cfg_team_color_num_));
+	b.set_team_color(ros_to_pb_team_color(cfg_team_color_));
 	if (req.pose.pose.position.x != 0. || req.pose.pose.position.y != 0. ||
 	    req.pose.pose.orientation.x != 0. || req.pose.pose.orientation.y != 0. ||
 	    req.pose.pose.orientation.z != 0. || req.pose.pose.orientation.w != 0.)
@@ -337,8 +405,14 @@ bool
 srv_cb_send_machine_report(rcll_ros_msgs::SendMachineReport::Request  &req,
                            rcll_ros_msgs::SendMachineReport::Response &res)
 {
+	if (! peer_private_) {
+		res.ok = false;
+		res.error_msg = "Cannot send machine report: private peer not setup, team not set in refbox?";
+		return true;
+	}
+
 	llsf_msgs::MachineReport mr;
-	mr.set_team_color(ros_to_pb_team_color(cfg_team_color_num_));
+	mr.set_team_color(ros_to_pb_team_color(cfg_team_color_));
 
 	std::string machines_sent;
 	
@@ -380,19 +454,11 @@ main(int argc, char **argv)
 	ros::NodeHandle n;
 
 	// Parameter parsing	
+	cfg_team_color_ = 0;
+	
 	GET_PRIV_PARAM(team_name);
-	GET_PRIV_PARAM(team_color);
 	GET_PRIV_PARAM(robot_name);
 	GET_PRIV_PARAM(robot_number);
-
-	if (cfg_team_color_ != "CYAN" && cfg_team_color_ != "MAGENTA") {
-		ROS_ERROR("Invalid team color given, must be CYAN or MAGENTA");
-		exit(-1);
-	}
-	cfg_team_color_num_ =
-		(cfg_team_color_ == "CYAN")
-		? (int)rcll_ros_msgs::Team::CYAN
-		: (int)rcll_ros_msgs::Team::MAGENTA;
 
 	GET_PRIV_PARAM(peer_address);
 	
@@ -405,23 +471,37 @@ main(int argc, char **argv)
 		GET_PRIV_PARAM(peer_public_port);
 	}
 
-	std::string cfg_pp_prefix =
-		std::string("~peer_") + (cfg_team_color_ == "CYAN" ? "cyan" : "magenta") + "_";
-	
-	if (ros::param::has(cfg_pp_prefix+"recv_port") && ros::param::has(cfg_pp_prefix+"send_port")) {
-		cfg_peer_private_local_ = true;
-		if (! ros::param::get(cfg_pp_prefix+"recv_port", cfg_peer_private_recv_port_)) {
-			ROS_ERROR("Failed to retrieve parameter %s_recv_port, aborting", cfg_pp_prefix.c_str());
+	if (ros::param::has("~peer_cyan_recv_port") && ros::param::has("~peer_cyan_send_port")) {
+		cfg_peer_cyan_local_ = true;
+		if (! ros::param::get("~peer_cyan_recv_port", cfg_peer_cyan_recv_port_)) {
+			ROS_ERROR("Failed to retrieve parameter cyan_recv_port, aborting");
 			exit(-1);
 		}
-		if (! ros::param::get(cfg_pp_prefix+"send_port", cfg_peer_private_send_port_)) {
-			ROS_ERROR("Failed to retrieve parameter %s_end_port, aborting", cfg_pp_prefix.c_str());
+		if (! ros::param::get("~peer_cyan_send_port", cfg_peer_cyan_send_port_)) {
+			ROS_ERROR("Failed to retrieve parameter cyan_send_port, aborting");
 			exit(-1);
 		}
 	} else {
-		cfg_peer_private_local_ = false;
-		if (! ros::param::get(cfg_pp_prefix+"port", cfg_peer_private_port_)) {
-			ROS_ERROR("Failed to retrieve parameter %s_port, aborting", cfg_pp_prefix.c_str());
+		cfg_peer_cyan_local_ = false;
+		if (! ros::param::get("~peer_cyan_port", cfg_peer_cyan_port_)) {
+			ROS_ERROR("Failed to retrieve parameter cyan_port, aborting");
+			exit(-1);
+		}
+	}
+	if (ros::param::has("~peer_magenta_recv_port") && ros::param::has("~peer_magenta_send_port")) {
+		cfg_peer_magenta_local_ = true;
+		if (! ros::param::get("~peer_magenta_recv_port", cfg_peer_magenta_recv_port_)) {
+			ROS_ERROR("Failed to retrieve parameter magenta_recv_port, aborting");
+			exit(-1);
+		}
+		if (! ros::param::get("~peer_magenta_send_port", cfg_peer_magenta_send_port_)) {
+			ROS_ERROR("Failed to retrieve parameter magenta_send_port, aborting");
+			exit(-1);
+		}
+	} else {
+		cfg_peer_magenta_local_ = false;
+		if (! ros::param::get("~peer_magenta_port", cfg_peer_magenta_port_)) {
+			ROS_ERROR("Failed to retrieve parameter magenta_port, aborting");
 			exit(-1);
 		}
 	}
@@ -459,26 +539,9 @@ main(int argc, char **argv)
   message_register.add_message_type<llsf_msgs::RingInfo>();
   message_register.add_message_type<llsf_msgs::RobotInfo>();
 
-  ROS_INFO("Creating private peer");
-  if (cfg_peer_private_local_) {
-	  peer_private_ = new ProtobufBroadcastPeer(cfg_peer_address_,
-	                                            cfg_peer_private_send_port_,
-	                                            cfg_peer_private_recv_port_,
-	                                            &message_register,
-	                                            cfg_crypto_key_, cfg_crypto_cipher_);
-  } else {
-	  peer_private_ = new ProtobufBroadcastPeer(cfg_peer_address_, cfg_peer_private_port_,
-	                                           &message_register,
-	                                           cfg_crypto_key_, cfg_crypto_cipher_);
-  }
-  
   peer_public_->signal_received().connect(handle_message);
   peer_public_->signal_recv_error().connect(handle_recv_error);
   peer_public_->signal_send_error().connect(handle_send_error);
-
-  peer_private_->signal_received().connect(handle_message);
-  peer_private_->signal_recv_error().connect(handle_recv_error);
-  peer_private_->signal_send_error().connect(handle_send_error);
 
   // provide services
   srv_send_beacon_ = n.advertiseService("rcll/send_beacon", srv_cb_send_beacon);
