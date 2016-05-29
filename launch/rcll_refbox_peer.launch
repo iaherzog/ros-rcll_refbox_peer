@@ -2,6 +2,8 @@
 	<node name="rcll_refbox_peer" pkg="rcll_refbox_peer" type="rcll_refbox_peer" output="screen">
 		<param name="team_name" type="string" value="Carologistics" />
 		<param name="team_color" type="string" value="CYAN" />
+		<param name="robot_name" type="string" value="R-1" />
+		<param name="robot_number" type="int" value="1" />
 		<param name="crypto_key" type="string" value="randomkey" />
 		<param name="crypto_cipher" type="string" value="aes-128-cbc" />
 		<param name="peer_address" type="string" value="127.0.0.1" />
