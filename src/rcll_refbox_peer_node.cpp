@@ -32,6 +32,7 @@
 #include <llsf_msgs/MachineReport.pb.h>
 #include <llsf_msgs/OrderInfo.pb.h>
 #include <llsf_msgs/RingInfo.pb.h>
+#include <llsf_msgs/MachineInstructions.pb.h>
 
 #include <rcll_ros_msgs/BeaconSignal.h>
 #include <rcll_ros_msgs/GameState.h>
@@ -44,6 +45,7 @@
 
 #include <rcll_ros_msgs/SendBeaconSignal.h>
 #include <rcll_ros_msgs/SendMachineReport.h>
+#include <rcll_ros_msgs/SendPrepareMachine.h>
 
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/utils.h>
@@ -89,6 +91,7 @@ ros::Publisher pub_ring_info_;
 
 ros::ServiceServer srv_send_beacon_;
 ros::ServiceServer srv_send_machine_report_;
+ros::ServiceServer srv_send_prepare_machine_;
 
 ProtobufBroadcastPeer *peer_public_ = NULL;
 ProtobufBroadcastPeer *peer_private_ = NULL;
@@ -446,6 +449,82 @@ srv_cb_send_machine_report(rcll_ros_msgs::SendMachineReport::Request  &req,
 	return true;
 }
 
+bool
+srv_cb_send_prepare_machine(rcll_ros_msgs::SendPrepareMachine::Request  &req,
+                            rcll_ros_msgs::SendPrepareMachine::Response &res)
+{
+	if (! peer_private_) {
+		res.ok = false;
+		res.error_msg = "Cannot prepare machine: private peer not setup, team not set in refbox?";
+		return true;
+	}
+
+	// parse machine name
+	std::string machine_team = req.machine.substr(0, 1);
+	std::string machine_type = req.machine.substr(2, 2);
+
+	if (machine_team != "C" && machine_team != "M") {
+		res.ok = false;
+		res.error_msg = "Invalid team prefix, must be C or M";
+		return true;
+	}
+	if (machine_type != "BS" && machine_type != "DS" && machine_type != "CS" && machine_type != "RS") {
+		res.ok = false;
+		res.error_msg = "Invalid machine type in name";
+		return true;
+	}
+	
+	llsf_msgs::PrepareMachine pm;
+	pm.set_team_color(ros_to_pb_team_color(cfg_team_color_));
+	pm.set_machine(req.machine);
+
+	if (machine_type == "BS") {
+		if (! llsf_msgs::MachineSide_IsValid(req.bs_side)) {
+			res.ok = false;
+			res.error_msg = "Invalid BS machine side";
+			return true;
+		}
+		if (! llsf_msgs::BaseColor_IsValid(req.bs_base_color)) {
+			res.ok = false;
+			res.error_msg = "Invalid BS base color";
+			return true;
+		}
+		llsf_msgs::PrepareInstructionBS *bsi = pm.mutable_instruction_bs();
+		bsi->set_side((llsf_msgs::MachineSide)req.bs_side);
+		bsi->set_color((llsf_msgs::BaseColor)req.bs_base_color);
+	} else if (machine_type == "DS") {
+		llsf_msgs::PrepareInstructionDS *dsi = pm.mutable_instruction_ds();
+		dsi->set_gate(req.ds_gate);
+	} else if (machine_type == "CS") {
+		if (! llsf_msgs::CsOp_IsValid(req.cs_operation)) {
+			res.ok = false;
+			res.error_msg = "Invalid CS operation";
+			return true;
+		}
+		llsf_msgs::PrepareInstructionCS *csi = pm.mutable_instruction_cs();
+		csi->set_operation((llsf_msgs::CsOp)req.cs_operation);
+	} else if (machine_type == "RS") {
+		if (! llsf_msgs::RingColor_IsValid(req.rs_ring_color)) {
+			res.ok = false;
+			res.error_msg = "Invalid RS ring color";
+			return true;
+		}
+		llsf_msgs::PrepareInstructionRS *rsi = pm.mutable_instruction_rs();
+		rsi->set_ring_color((llsf_msgs::RingColor)req.rs_ring_color);
+	}
+	
+	try {
+		ROS_DEBUG("Sending prepare machine instruction for machine: %s", req.machine.c_str());
+		peer_private_->send(pm);
+		res.ok = true;
+	} catch (std::runtime_error &e) {
+		res.ok = false;
+		res.error_msg = e.what();
+	}
+
+	return true;
+}
+
 int
 main(int argc, char **argv)
 {
@@ -546,7 +625,8 @@ main(int argc, char **argv)
   // provide services
   srv_send_beacon_ = n.advertiseService("rcll/send_beacon", srv_cb_send_beacon);
   srv_send_machine_report_ = n.advertiseService("rcll/send_machine_report", srv_cb_send_machine_report);
-  
+  srv_send_prepare_machine_ = n.advertiseService("rcll/send_prepare_machine", srv_cb_send_prepare_machine);
+
   ros::spin();
 	
 	return 0;
