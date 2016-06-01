@@ -1,0 +1,52 @@
+<launch>
+	<!--  ***** Robot  1 ***** -->
+	<node ns="robot1" name="rcll_refbox_peer_1" pkg="rcll_refbox_peer" type="rcll_refbox_peer" output="screen">
+		<param name="team_name" type="string" value="Carologistics" />
+		<param name="team_color" type="string" value="CYAN" />
+		<param name="robot_name" type="string" value="R-1" />
+		<param name="robot_number" type="int" value="1" />
+		<param name="crypto_key" type="string" value="randomkey" />
+		<param name="crypto_cipher" type="string" value="aes-128-cbc" />
+		<param name="peer_address" type="string" value="127.0.0.1" />
+		<param name="peer_public_recv_port" type="int" value="4411" />
+		<param name="peer_public_send_port" type="int" value="4421" />
+		<param name="peer_cyan_recv_port" type="int" value="4451" />
+		<param name="peer_cyan_send_port" type="int" value="4471" />
+		<param name="peer_magenta_recv_port" type="int" value="4461" />
+		<param name="peer_magenta_send_port" type="int" value="4481" />
+	</node>
+
+	<!--  ***** Robot  2 ***** -->
+	<node ns="robot2" name="rcll_refbox_peer_2" pkg="rcll_refbox_peer" type="rcll_refbox_peer" output="screen">
+		<param name="team_name" type="string" value="Carologistics" />
+		<param name="team_color" type="string" value="CYAN" />
+		<param name="robot_name" type="string" value="R-2" />
+		<param name="robot_number" type="int" value="2" />
+		<param name="crypto_key" type="string" value="randomkey" />
+		<param name="crypto_cipher" type="string" value="aes-128-cbc" />
+		<param name="peer_address" type="string" value="127.0.0.1" />
+		<param name="peer_public_recv_port" type="int" value="4412" />
+		<param name="peer_public_send_port" type="int" value="4422" />
+		<param name="peer_cyan_recv_port" type="int" value="4452" />
+		<param name="peer_cyan_send_port" type="int" value="4472" />
+		<param name="peer_magenta_recv_port" type="int" value="4462" />
+		<param name="peer_magenta_send_port" type="int" value="4482" />
+	</node>
+
+	<!--  ***** Robot  3 ***** -->
+	<node ns="robot3" name="rcll_refbox_peer_3" pkg="rcll_refbox_peer" type="rcll_refbox_peer" output="screen">
+		<param name="team_name" type="string" value="Carologistics" />
+		<param name="team_color" type="string" value="CYAN" />
+		<param name="robot_name" type="string" value="R-3" />
+		<param name="robot_number" type="int" value="3" />
+		<param name="crypto_key" type="string" value="randomkey" />
+		<param name="crypto_cipher" type="string" value="aes-128-cbc" />
+		<param name="peer_address" type="string" value="127.0.0.1" />
+		<param name="peer_public_recv_port" type="int" value="4413" />
+		<param name="peer_public_send_port" type="int" value="4423" />
+		<param name="peer_cyan_recv_port" type="int" value="4453" />
+		<param name="peer_cyan_send_port" type="int" value="4473" />
+		<param name="peer_magenta_recv_port" type="int" value="4463" />
+		<param name="peer_magenta_send_port" type="int" value="4483" />
+	</node>
+</launch>
