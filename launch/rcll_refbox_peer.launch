@@ -1,5 +1,5 @@
 <launch>
-	<node name="rcll_refbox_peer" pkg="rcll_refbox_peer" type="rcll_refbox_peer" output="screen">
+	<node ns="robot1" name="rcll_refbox_peer" pkg="rcll_refbox_peer" type="rcll_refbox_peer" output="screen">
 		<param name="team_name" type="string" value="Carologistics" />
 		<param name="team_color" type="string" value="CYAN" />
 		<param name="robot_name" type="string" value="R-1" />
