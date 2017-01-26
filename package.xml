@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <package>
   <name>rcll_refbox_peer</name>
-  <version>0.0.0</version>
+  <version>0.2.0</version>
   <description>RCLL refbox communication adapter</description>
 
   <author>Tim Niemueller</author>
