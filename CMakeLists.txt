@@ -97,6 +97,7 @@ include_directories(
 
 ## Declare a C++ executable
 add_executable(rcll_refbox_peer src/rcll_refbox_peer_node.cpp)
+add_dependencies(rcll_refbox_peer ${catkin_EXPORTED_TARGETS})
 
 ## Add cmake target dependencies of the executable
 ## same as for the library above
