@@ -29,12 +29,15 @@ if (protobuf_comm_FOUND)
 	elseif(COMPILER_SUPPORTS_CXX0X)
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++0x")
 	else()
-		message(FATAL "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
+		message(FATAL_ERROR "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 	endif()
 else()
-	find_package(Fawkes COMPONENTS protobuf_comm)
+	find_package(Fawkes COMPONENTS protobuf_comm llsf_msgs)
 	if (NOT Fawkes_FOUND)
-		message(FATAL "Neither system protobuf_comm nor Fawkes found")
+		find_package(RCLLRefbox COMPONENTS protobuf_comm llsf_msgs)
+		if (NOT RCLLRefbox_FOUND)
+			message(FATAL_ERROR "protobuf_comm not found, tried system, Fawkes, and RCLL refbox")
+		endif()
 	endif()
 endif()
 
@@ -125,8 +128,22 @@ elseif (Fawkes_FOUND)
     INSTALL_RPATH_USE_LINK_PATH TRUE
     BUILD_WITH_INSTALL_RPATH TRUE)
   message(STATUS "Using Fawkes protobuf_comm")
+
+elseif (RCLLRefbox_FOUND)
+  list(APPEND _LIBRARIES "llsf_msgs")
+
+	# Use Fawkes' protobuf_comm
+  set_target_properties(rcll_refbox_peer PROPERTIES
+    INCLUDE_DIRECTORIES "${Fawkes_INCLUDE_DIRS};${catkin_INCLUDE_DIRS}"
+    COMPILE_FLAGS "${Fawkes_CFLAGS} ${catkin_CFLAGS}"
+    LINK_FLAGS "${Fawkes_LFLAGS}"
+    LINK_LIBRARIES "${Fawkes_LIBRARIES};${catkin_LIBRARIES}"
+    INSTALL_RPATH "${Fawkes_LIBRARY_DIRS}"
+    INSTALL_RPATH_USE_LINK_PATH TRUE
+    BUILD_WITH_INSTALL_RPATH TRUE)
+  message(STATUS "Using Fawkes protobuf_comm")
 else()
-  message(FATAL "Neither system nor Fawkes protobuf_comm found")
+  message(FATAL_ERROR "Neither system nor Fawkes protobuf_comm found")
 endif()
 
 #############
