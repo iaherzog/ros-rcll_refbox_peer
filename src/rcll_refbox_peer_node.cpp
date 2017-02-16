@@ -486,6 +486,16 @@ srv_cb_send_prepare_machine(rcll_ros_msgs::SendPrepareMachine::Request  &req,
 		res.error_msg = "Invalid team prefix '" + machine_team + "', must be C or M";
 		return true;
 	}
+	if (machine_team == "C" && cfg_team_color_ == (int)rcll_ros_msgs::Team::MAGENTA) {
+		res.ok = false;
+		res.error_msg = "Invalid team prefix 'C', own team is MAGENTA";
+		return true;
+	}
+	if (machine_team == "M" && cfg_team_color_ == (int)rcll_ros_msgs::Team::CYAN) {
+		res.ok = false;
+		res.error_msg = "Invalid team prefix 'M', own team is CYAN";
+		return true;
+	}
 	if (machine_type != "BS" && machine_type != "DS" && machine_type != "CS" && machine_type != "RS") {
 		res.ok = false;
 		res.error_msg = "Invalid machine type '" + machine_type + "' in name";
