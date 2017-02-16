@@ -455,7 +455,13 @@ srv_cb_send_prepare_machine(rcll_ros_msgs::SendPrepareMachine::Request  &req,
 {
 	if (! peer_private_) {
 		res.ok = false;
-		res.error_msg = "Cannot prepare machine: private peer not setup, team not set in refbox?";
+		res.error_msg = "private peer not setup, team not set in refbox?";
+		return true;
+	}
+
+	if (req.machine.length() < 4) {
+		res.ok = false;
+		res.error_msg = "Invalid machine name '" + req.machine + "'";
 		return true;
 	}
 
@@ -465,12 +471,12 @@ srv_cb_send_prepare_machine(rcll_ros_msgs::SendPrepareMachine::Request  &req,
 
 	if (machine_team != "C" && machine_team != "M") {
 		res.ok = false;
-		res.error_msg = "Invalid team prefix, must be C or M";
+		res.error_msg = "Invalid team prefix '" + machine_team + "', must be C or M";
 		return true;
 	}
 	if (machine_type != "BS" && machine_type != "DS" && machine_type != "CS" && machine_type != "RS") {
 		res.ok = false;
-		res.error_msg = "Invalid machine type in name";
+		res.error_msg = "Invalid machine type '" + machine_type + "' in name";
 		return true;
 	}
 	
