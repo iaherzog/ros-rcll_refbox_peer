@@ -50,6 +50,9 @@
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/utils.h>
 
+#include <mutex>
+#include <condition_variable>
+
 #define GET_PRIV_PARAM(P)	  \
 	{ \
 		if (! ros::param::get("~" #P, cfg_ ## P ## _)) { \
@@ -96,6 +99,9 @@ ros::ServiceServer srv_send_prepare_machine_;
 ProtobufBroadcastPeer *peer_public_ = NULL;
 ProtobufBroadcastPeer *peer_private_ = NULL;
 
+std::mutex mtx_machine_info_;
+std::condition_variable cdv_machine_info_;
+std::shared_ptr<MachineInfo> msg_machine_info_;
 
 void setup_private_peer(llsf_msgs::Team team_color);
 
@@ -224,6 +230,12 @@ handle_message(boost::asio::ip::udp::endpoint &sender,
 				rmi.machines.push_back(rm);
 			}
 			pub_machine_info_.publish(rmi);
+
+			{ // Wake if anyone is waiting for this, i.e., the prepare svc callback
+				std::unique_lock<std::mutex> lock(mtx_machine_info_);
+				msg_machine_info_ = mi;
+				cdv_machine_info_.notify_all();
+			}			
 		}
 	}
 
@@ -526,6 +538,36 @@ srv_cb_send_prepare_machine(rcll_ros_msgs::SendPrepareMachine::Request  &req,
 	} catch (std::runtime_error &e) {
 		res.ok = false;
 		res.error_msg = e.what();
+	}
+
+	if (req.wait) {
+		ROS_INFO("Waiting for machine '%s' state != IDLE", req.machine.c_str());
+		std::unique_lock<std::mutex> lock(mtx_machine_info_);
+
+		int machine_idx = 0;
+		cdv_machine_info_.wait(lock,
+		                       [&req, &machine_idx]() -> bool {
+			                       if (! msg_machine_info_) return false;
+			                       rcll_ros_msgs::MachineInfo rmi;
+			                       for (int i = 0; i < msg_machine_info_->machines_size(); ++i) {
+				                       const llsf_msgs::Machine &m = msg_machine_info_->machines(i);
+				                       if (m.name() == req.machine && m.has_state() && m.state() != "IDLE") {
+					                       machine_idx = i;
+					                       return true;
+				                       }
+			                       }
+			                       return false;
+		                       });
+
+		const llsf_msgs::Machine &m = msg_machine_info_->machines(machine_idx);
+		if (m.state() == "PREPARED" || (machine_type == "BS" && m.state() == "READY-AT-OUTPUT")) {
+			ROS_INFO("Machine '%s' successfully prepared", req.machine.c_str());
+			res.ok = true;
+		} else {
+			ROS_WARN("Machine '%s' went into '%s' state", req.machine.c_str(), m.state().c_str());
+			res.ok = false;
+			res.error_msg = "Machine '" + req.machine + "' went into '" + m.state() + "' state";
+		}
 	}
 
 	return true;
