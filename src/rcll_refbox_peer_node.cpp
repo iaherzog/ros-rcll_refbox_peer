@@ -570,13 +570,13 @@ srv_cb_send_prepare_machine(rcll_ros_msgs::SendPrepareMachine::Request  &req,
 		                       });
 
 		const llsf_msgs::Machine &m = msg_machine_info_->machines(machine_idx);
-		if (m.state() == "PREPARED" || (machine_type == "BS" && m.state() == "READY-AT-OUTPUT")) {
-			ROS_INFO("Machine '%s' successfully prepared", req.machine.c_str());
-			res.ok = true;
-		} else {
-			ROS_WARN("Machine '%s' went into '%s' state", req.machine.c_str(), m.state().c_str());
+		if (m.state() == "BROKEN") {
+			ROS_WARN("Machine '%s' went into 'BROKEN' state", req.machine.c_str());
 			res.ok = false;
 			res.error_msg = "Machine '" + req.machine + "' went into '" + m.state() + "' state";
+		} else {
+			ROS_INFO("Machine '%s' went into '%s' state", req.machine.c_str(), m.state().c_str());
+			res.ok = true;
 		}
 	}
 
