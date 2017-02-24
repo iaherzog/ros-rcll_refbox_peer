@@ -52,6 +52,7 @@
 
 #include <mutex>
 #include <condition_variable>
+#include <chrono>
 
 #define GET_PRIV_PARAM(P)	  \
 	{ \
@@ -539,6 +540,48 @@ srv_cb_send_prepare_machine(rcll_ros_msgs::SendPrepareMachine::Request  &req,
 		}
 		llsf_msgs::PrepareInstructionRS *rsi = pm.mutable_instruction_rs();
 		rsi->set_ring_color((llsf_msgs::RingColor)req.rs_ring_color);
+	}
+
+	if (req.wait) {
+		std::unique_lock<std::mutex> lock(mtx_machine_info_);
+
+		bool need_to_wait = false;
+		for (int i = 0; i < msg_machine_info_->machines_size(); ++i) {
+			const llsf_msgs::Machine &m = msg_machine_info_->machines(i);
+			if (m.name() == req.machine) {
+				if (m.has_state() && m.state() != "IDLE") {
+					ROS_INFO("Machine '%s' is not in IDLE state, waiting briefly", req.machine.c_str());
+					need_to_wait = true;
+				}
+				break;
+			}
+		}
+		if (need_to_wait) {
+			int machine_idx = 0;
+			cdv_machine_info_.wait_for(lock, std::chrono::seconds(10),
+			                           [&req, &machine_idx]() -> bool {
+				                           if (! msg_machine_info_) return false;
+				                           rcll_ros_msgs::MachineInfo rmi;
+				                           for (int i = 0; i < msg_machine_info_->machines_size(); ++i) {
+					                           const llsf_msgs::Machine &m = msg_machine_info_->machines(i);
+					                           if (m.name() == req.machine && m.has_state() && m.state() == "IDLE") {
+						                           machine_idx = i;
+						                           return true;
+					                           }
+				                           }
+				                           return false;
+			                           });
+
+			const llsf_msgs::Machine &m = msg_machine_info_->machines(machine_idx);
+			if (m.state() != "IDLE") {
+				ROS_INFO("Machine '%s' went into '%s' state, not IDLE", req.machine.c_str(), m.state().c_str());
+				res.ok = false;
+				res.error_msg = "Machine '" + req.machine + "' went into '" + m.state() + "' state, not IDLE";
+				return true;
+			} else {
+				ROS_INFO("Machine '%s' is now in IDLE state", req.machine.c_str());
+			}
+		}
 	}
 	
 	try {
