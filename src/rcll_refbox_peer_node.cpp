@@ -719,6 +719,7 @@ main(int argc, char **argv)
   message_register.add_message_type<llsf_msgs::OrderInfo>();
   message_register.add_message_type<llsf_msgs::RingInfo>();
   message_register.add_message_type<llsf_msgs::RobotInfo>();
+  message_register.add_message_type<llsf_msgs::PrepareMachine>();
 
   peer_public_->signal_received().connect(handle_message);
   peer_public_->signal_recv_error().connect(handle_recv_error);
