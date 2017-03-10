@@ -599,7 +599,7 @@ srv_cb_send_prepare_machine(rcll_ros_msgs::SendPrepareMachine::Request  &req,
 
 		int machine_idx = 0;
 		cdv_machine_info_.wait(lock,
-		                       [&req, &machine_idx]() -> bool {
+		                       [&req, &machine_idx, &pm]() -> bool {
 			                       if (! msg_machine_info_) return false;
 			                       rcll_ros_msgs::MachineInfo rmi;
 			                       for (int i = 0; i < msg_machine_info_->machines_size(); ++i) {
@@ -609,6 +609,7 @@ srv_cb_send_prepare_machine(rcll_ros_msgs::SendPrepareMachine::Request  &req,
 					                       return true;
 				                       }
 			                       }
+			                       peer_private_->send(pm);
 			                       return false;
 		                       });
 
