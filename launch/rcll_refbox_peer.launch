@@ -1,17 +1,33 @@
 <launch>
-	<node ns="robot1" name="rcll_refbox_peer" pkg="rcll_refbox_peer" type="rcll_refbox_peer" output="screen">
-		<param name="team_name" type="string" value="Carologistics" />
-		<param name="team_color" type="string" value="CYAN" />
-		<param name="robot_name" type="string" value="R-1" />
-		<param name="robot_number" type="int" value="1" />
-		<param name="crypto_key" type="string" value="randomkey" />
-		<param name="crypto_cipher" type="string" value="aes-128-cbc" />
-		<param name="peer_address" type="string" value="127.0.0.1" />
-		<param name="peer_public_recv_port" type="int" value="4411" />
-		<param name="peer_public_send_port" type="int" value="4421" />
-		<param name="peer_cyan_recv_port" type="int" value="4451" />
-		<param name="peer_cyan_send_port" type="int" value="4471" />
-		<param name="peer_magenta_recv_port" type="int" value="4461" />
-		<param name="peer_magenta_send_port" type="int" value="4481" />
+	<arg name="num_robots" />
+
+	<arg name="team_name" />
+	<arg name="team_color" default="CYAN" />
+	<arg name="robot_name" />
+	<arg name="robot_number" />
+	<arg name="crypto_key" />
+	<arg name="crypto_cipher" default="aes-128-cbc"/>
+	<arg name="peer_address" default="127.0.0.1" />
+	<arg name="peer_public_recv_port" default="4411" />
+	<arg name="peer_public_send_port" default="4421" />
+	<arg name="peer_cyan_recv_port" default="4451" />
+	<arg name="peer_cyan_send_port" default="4471" />
+	<arg name="peer_magenta_recv_port" default="4461" />
+	<arg name="peer_magenta_send_port" default="4481" />
+
+	<node name="rcll_refbox_peer_$(arg robot_number)" pkg="rcll_refbox_peer" type="rcll_refbox_peer" output="screen">
+		<param name="team_name" type="string" value="$(arg team_name)" />
+		<param name="team_color" type="string" value="$(arg team_color)" />
+		<param name="robot_name" type="string" value="$(arg robot_name)" />
+		<param name="robot_number" type="int" value="$(arg robot_number)" />
+		<param name="crypto_key" type="string" value="$(arg crypto_key)" />
+		<param name="crypto_cipher" type="string" value="$(arg crypto_cipher)" />
+		<param name="peer_address" type="string" value="$(arg peer_address)" />
+		<param name="peer_public_recv_port" type="int" value="$(arg peer_public_recv_port)" />
+		<param name="peer_public_send_port" type="int" value="$(arg peer_public_send_port)" />
+		<param name="peer_cyan_recv_port" type="int" value="$(arg peer_cyan_recv_port)" />
+		<param name="peer_cyan_send_port" type="int" value="$(arg peer_cyan_send_port)" />
+		<param name="peer_magenta_recv_port" type="int" value="$(arg peer_magenta_recv_port)" />
+		<param name="peer_magenta_send_port" type="int" value="$(arg peer_magenta_send_port)" />
 	</node>
 </launch>
