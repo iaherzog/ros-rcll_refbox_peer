@@ -634,6 +634,8 @@ main(int argc, char **argv)
 
 	ros::NodeHandle n;
 
+	ROS_INFO("%s starting up", ros::this_node::getName().c_str());
+
 	// Parameter parsing	
 	cfg_team_color_ = 0;
 	
@@ -700,12 +702,15 @@ main(int argc, char **argv)
 	pub_ring_info_ = n.advertise<rcll_ros_msgs::RingInfo>("rcll/ring_info", 10);
 
 	// Setup basic communication
-  ROS_INFO("Creating public peer");
   if (cfg_peer_public_local_) {
+	  ROS_WARN("Creating public peer: addr: %s  send: %u  recv: %u",
+	           cfg_peer_address_.c_str(), cfg_peer_public_send_port_, cfg_peer_public_recv_port_);
 	  peer_public_ = new ProtobufBroadcastPeer(cfg_peer_address_,
 	                                           cfg_peer_public_send_port_,
 	                                           cfg_peer_public_recv_port_);
   } else {
+	  ROS_WARN("Creating public peer: addr: %s  port: %u",
+	           cfg_peer_address_.c_str(), cfg_peer_public_port_);
 	  peer_public_ = new ProtobufBroadcastPeer(cfg_peer_address_, cfg_peer_public_port_);
   }
 
