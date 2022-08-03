@@ -523,15 +523,15 @@ srv_cb_send_prepare_machine(rcll_ros_msgs::SendPrepareMachine::Request  &req,
 		bsi->set_color((llsf_msgs::BaseColor)req.bs_base_color);
 	} else if (machine_type == "DS") {
 		llsf_msgs::PrepareInstructionDS *dsi = pm.mutable_instruction_ds();
-		dsi->set_gate(req.ds_gate);
+		dsi->set_order_id(req.ds_order_id);
 	} else if (machine_type == "CS") {
-		if (! llsf_msgs::CsOp_IsValid(req.cs_operation)) {
+		if (! llsf_msgs::CSOp_IsValid(req.cs_operation)) {
 			res.ok = false;
 			res.error_msg = "Invalid CS operation";
 			return true;
 		}
 		llsf_msgs::PrepareInstructionCS *csi = pm.mutable_instruction_cs();
-		csi->set_operation((llsf_msgs::CsOp)req.cs_operation);
+		csi->set_operation((llsf_msgs::CSOp)req.cs_operation);
 	} else if (machine_type == "RS") {
 		if (! llsf_msgs::RingColor_IsValid(req.rs_ring_color)) {
 			res.ok = false;
